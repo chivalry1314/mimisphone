@@ -10,9 +10,10 @@ interface AppIconProps {
   customIcon?: React.ReactNode;
   isFolder?: boolean;
   isClock?: boolean;
+  onClick?: () => void;
 }
 
-export const AppIcon: React.FC<AppIconProps> = ({ name, icon, color, label, customIcon, isFolder, isClock }) => {
+export const AppIcon: React.FC<AppIconProps> = ({ name, icon, color, label, customIcon, isFolder, isClock, onClick }) => {
   const IconComponent = icon ? (LucideIcons[icon] as React.ElementType) : null;
 
   return (
@@ -20,6 +21,7 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, icon, color, label, cust
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.9 }}
       className="flex flex-col items-center gap-1 cursor-pointer"
+      onClick={onClick}
     >
       <div 
         className={`w-[60px] h-[60px] rounded-[1.2rem] flex items-center justify-center glass-icon ios-shadow relative overflow-hidden group`}

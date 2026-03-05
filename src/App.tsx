@@ -8,15 +8,25 @@ import { LockScreen } from './components/LockScreen';
 import { WeatherWidget } from './components/WeatherWidget';
 import { BatteryWidget } from './components/BatteryWidget';
 import { CalendarWidget } from './components/CalendarWidget';
+import { ChatApp } from './components/ChatApp';
+import { WorldBookApp } from './components/WorldBookApp';
+import { SettingsApp } from './components/SettingsApp';
 import { Search, Mic, Clock, Flower2 } from 'lucide-react';
 
 export default function App() {
   const [isLocked, setIsLocked] = useState(false);
+  const [activeApp, setActiveApp] = useState<'chat' | 'worldbook' | 'settings' | null>(null);
 
   return (
     <div className="relative w-full h-screen bg-[#8fb6c7] overflow-hidden flex flex-col">
       <AnimatePresence>
         {isLocked && <LockScreen onUnlock={() => setIsLocked(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeApp === 'chat' && <ChatApp onClose={() => setActiveApp(null)} />}
+        {activeApp === 'worldbook' && <WorldBookApp onClose={() => setActiveApp(null)} />}
+        {activeApp === 'settings' && <SettingsApp onClose={() => setActiveApp(null)} />}
       </AnimatePresence>
 
       {/* Wallpaper - Water Ripple Theme */}
@@ -42,7 +52,7 @@ export default function App() {
       </div>
 
       {/* Status Bar */}
-      <StatusBar />
+      <StatusBar dark={!!activeApp} />
 
       {/* Main Content Area */}
       <main className="flex-1 z-10 overflow-y-auto pt-4 pb-32 px-6 flex flex-col gap-8">
@@ -67,11 +77,26 @@ export default function App() {
           <AppIcon name="App Store" icon="AppWindow" label="App Store" />
           <AppIcon name="Weather" icon="Cloud" label="天气" />
           <AppIcon name="Tools" isFolder label="工具" />
-          <AppIcon name="Notes" icon="StickyNote" label="备忘录" />
+          <AppIcon 
+            name="Notes" 
+            icon="StickyNote" 
+            label="备忘录" 
+            onClick={() => setActiveApp('worldbook')}
+          />
           
           <AppIcon name="Maps" icon="MapPin" label="地图" />
-          <AppIcon name="Settings" icon="Settings" label="设置" />
-          <AppIcon name="Photos" icon="Image" label="照片" />
+          <AppIcon 
+            name="Settings" 
+            icon="Settings" 
+            label="设置" 
+            onClick={() => setActiveApp('settings')}
+          />
+          <AppIcon 
+            name="Chat" 
+            icon="MessageSquare" 
+            label="AI 聊天" 
+            onClick={() => setActiveApp('chat')}
+          />
           <AppIcon name="Clock" isClock label="时钟" />
         </div>
 
@@ -85,11 +110,13 @@ export default function App() {
 
       </main>
 
-      {/* Home Dock */}
-      <HomeDock />
+      {/* Home Dock - Only show when no app is active */}
+      {!activeApp && <HomeDock />}
 
-      {/* Home Indicator */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/30 rounded-full z-50" />
+      {/* Home Indicator - Only show when no app is active */}
+      {!activeApp && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/30 rounded-full z-50" />
+      )}
     </div>
   );
 }
