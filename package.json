@@ -47,6 +47,8 @@
     "postcss-loader": "^8.2.1",
     "style-loader": "^4.0.0",
     "tailwindcss": "^4.1.14",
+    "terser": "^5.46.0",
+    "terser-webpack-plugin": "^5.3.17",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",

@@ -4,6 +4,7 @@ const HTMLInlineScriptPlugin = require('html-inline-script-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HTMLInlineCSSWebpackPlugin = require('html-inline-css-webpack-plugin').default;
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
   mode: 'production',
@@ -76,8 +77,21 @@ module.exports = {
     new HTMLInlineScriptPlugin(),
   ],
   optimization: {
+    minimize: true,
     minimizer: [
-      `...`,
+      new TerserPlugin({
+        terserOptions: {
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+            pure_funcs: ['console.log'],
+          },
+          format: {
+            comments: false,
+          },
+        },
+        extractComments: false,
+      }),
       new CssMinimizerPlugin(),
     ],
   },
