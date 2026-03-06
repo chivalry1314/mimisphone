@@ -11,11 +11,12 @@ import { CalendarWidget } from './components/CalendarWidget';
 import { ChatApp } from './components/ChatApp';
 import { WorldBookApp } from './components/WorldBookApp';
 import { SettingsApp } from './components/SettingsApp';
+import { WeChatApp } from './components/WeChatApp';
 import { Search, Mic, Clock, Flower2 } from 'lucide-react';
 
 export default function App() {
   const [isLocked, setIsLocked] = useState(false);
-  const [activeApp, setActiveApp] = useState<'chat' | 'worldbook' | 'settings' | null>(null);
+  const [activeApp, setActiveApp] = useState<'chat' | 'worldbook' | 'settings' | 'wechat' | null>(null);
 
   return (
     <div className="relative w-full h-screen bg-[#8fb6c7] overflow-hidden flex flex-col">
@@ -27,18 +28,19 @@ export default function App() {
         {activeApp === 'chat' && <ChatApp onClose={() => setActiveApp(null)} />}
         {activeApp === 'worldbook' && <WorldBookApp onClose={() => setActiveApp(null)} />}
         {activeApp === 'settings' && <SettingsApp onClose={() => setActiveApp(null)} />}
+        {activeApp === 'wechat' && <WeChatApp onClose={() => setActiveApp(null)} />}
       </AnimatePresence>
 
       {/* Wallpaper - Water Ripple Theme */}
       <div className="absolute inset-0 z-0 bg-[#8fb6c7]">
-        <img 
-          src="https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=2000&auto=format&fit=crop" 
-          alt="Water Wallpaper" 
+        <img
+          src="https://images.unsplash.com/photo-1500375592092-40eb2168fd21?q=80&w=2000&auto=format&fit=crop"
+          alt="Water Wallpaper"
           className="w-full h-full object-cover brightness-110"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-blue-400/10 backdrop-blur-[1px]" />
-        
+
         {/* Floating Flowers - Using Lucide Icons instead of images for reliability */}
         <div className="absolute top-20 left-20 opacity-60 animate-float">
           <Flower2 size={40} className="text-white" />
@@ -56,7 +58,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 z-10 overflow-y-auto pt-4 pb-32 px-6 flex flex-col gap-8">
-        
+
         {/* Top Weather Widget */}
         <Widget size="medium" title="天气">
           <WeatherWidget />
@@ -77,25 +79,25 @@ export default function App() {
           <AppIcon name="App Store" icon="AppWindow" label="App Store" />
           <AppIcon name="Weather" icon="Cloud" label="天气" />
           <AppIcon name="Tools" isFolder label="工具" />
-          <AppIcon 
-            name="Notes" 
-            icon="StickyNote" 
-            label="备忘录" 
+          <AppIcon
+            name="Notes"
+            icon="StickyNote"
+            label="备忘录"
             onClick={() => setActiveApp('worldbook')}
           />
-          
+
           <AppIcon name="Maps" icon="MapPin" label="地图" />
-          <AppIcon 
-            name="Settings" 
-            icon="Settings" 
-            label="设置" 
+          <AppIcon
+            name="Settings"
+            icon="Settings"
+            label="设置"
             onClick={() => setActiveApp('settings')}
           />
-          <AppIcon 
-            name="Chat" 
-            icon="MessageSquare" 
-            label="AI 聊天" 
-            onClick={() => setActiveApp('chat')}
+          <AppIcon
+            name="WeChat"
+            icon="MessageCircle"
+            label="微信"
+            onClick={() => setActiveApp('wechat')}
           />
           <AppIcon name="Clock" isClock label="时钟" />
         </div>
