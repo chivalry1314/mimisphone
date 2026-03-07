@@ -6,3 +6,7 @@ export * from './WeChatContacts';
 export * from './WeChatChatView';
 export * from './WeChatDiscover';
 export * from './WeChatProfile';
+export * from './ContactProfileView';
+export * from './EditCharacterView';
+export * from './EditMyProfileView';
+export * from './EditMyNameView';

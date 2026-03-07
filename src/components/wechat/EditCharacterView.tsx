@@ -1,28 +1,47 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Image as ImageIcon, Check } from 'lucide-react';
 import { useStore } from '../../store';
-import { AddCharacterViewProps } from './types';
 
-export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) => {
-  const { addWeChatCharacter, worldBook } = useStore();
-  const [avatar, setAvatar] = useState<string>('');
+interface EditCharacterViewProps {
+  characterId: string;
+  onBack: () => void;
+}
+
+export const EditCharacterView: React.FC<EditCharacterViewProps> = ({ characterId, onBack }) => {
+  const { wechatCharacters, updateWeChatCharacter, worldBook } = useStore();
+  const character = wechatCharacters.find(c => c.id === characterId);
+
+  const [avatar, setAvatar] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [greeting, setGreeting] = useState('');
   
-  // 临时存储选择的世界书信息
-  const [tempSelectedWorldBookId, setTempSelectedWorldBookId] = useState<string>('');
-  const [tempSelectedWorldBookName, setTempSelectedWorldBookName] = useState<string>('');
+  const [tempSelectedWorldBookId, setTempSelectedWorldBookId] = useState('');
+  const [tempSelectedWorldBookName, setTempSelectedWorldBookName] = useState('');
   
-  // 用于控制视图切换：'form' (主表单) 或 'selectWorldBook' (世界书列表)
   const [viewMode, setViewMode] = useState<'form' | 'selectWorldBook'>('form');
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
+  // 初始化数据
+  useEffect(() => {
+    if (character) {
+      setAvatar(character.avatar || '');
+      setName(character.name || '');
+      setDescription(character.description || '');
+      setGreeting(character.greeting || '');
+      
+      if (character.worldBookId) {
+        setTempSelectedWorldBookId(character.worldBookId);
+        const wb = worldBook.find(w => w.id === character.worldBookId);
+        if (wb) setTempSelectedWorldBookName(wb.name);
+      }
+    }
+  }, [character, worldBook]);
+
+  if (!character) return null;
+
+  const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,8 +74,7 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
           
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-            setAvatar(compressedBase64);
+            setAvatar(canvas.toDataURL('image/jpeg', 0.8));
           }
         };
         img.src = event.target?.result as string;
@@ -65,19 +83,16 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
     }
   };
 
-  // 修复点 1：只有昵称是必填项，世界书是可选项
   const isFormValid = name.trim().length > 0;
 
   const handleSubmit = () => {
     if (isFormValid) {
-      addWeChatCharacter({
+      updateWeChatCharacter(characterId, {
         name: name.trim(),
         description,
         avatar,
-        worldBookId: tempSelectedWorldBookId || undefined, // 兼容未选择世界书的情况
+        worldBookId: tempSelectedWorldBookId || undefined,
         greeting,
-        personality: '',
-        background: '',
       });
       onBack();
     }
@@ -94,11 +109,11 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
       {viewMode === 'form' && (
         <motion.div
           key="form"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, x: -10 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
           transition={{ duration: 0.15 }}
-          className="absolute inset-0 bg-[#EDEDED] flex flex-col z-50"
+          className="absolute inset-0 bg-[#EDEDED] flex flex-col z-[60]"
         >
           {/* Header */}
           <div className="bg-[#F7F7F7] px-4 pt-12 pb-3 flex items-center border-b border-gray-200 shrink-0">
@@ -106,19 +121,18 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
               <ChevronLeft size={28} />
               <span className="text-[17px]">取消</span>
             </button>
-            <h1 className="flex-1 text-center text-[17px] font-semibold text-gray-900">新建角色</h1>
+            <h1 className="flex-1 text-center text-[17px] font-semibold text-gray-900">朋友资料</h1>
             <button 
               onClick={handleSubmit} 
               disabled={!isFormValid}
               className={`text-[17px] font-medium transition-colors ${isFormValid ? 'text-[#07C160] active:opacity-50' : 'text-gray-300'}`}
             >
-              完成
+              保存
             </button>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto pt-4 pb-10">
-            {/* Avatar */}
             <div className="flex flex-col items-center mb-6 px-4">
               <div
                 onClick={handleAvatarClick}
@@ -131,16 +145,9 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
                 )}
               </div>
               <span className="text-[13px] text-gray-500 mt-2">设置头像</span>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             </div>
 
-            {/* 分组1: 必填与世界书 */}
             <div className="bg-white border-t border-b border-gray-200 mb-6">
               <div className="flex items-center px-4 py-3 border-b border-gray-100">
                 <label className="text-[16px] text-gray-900 w-24 shrink-0">昵称</label>
@@ -153,10 +160,7 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
                 />
               </div>
               
-              <div 
-                onClick={() => setViewMode('selectWorldBook')} 
-                className="flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer"
-              >
+              <div onClick={() => setViewMode('selectWorldBook')} className="flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer">
                 <label className="text-[16px] text-gray-900 w-24 shrink-0">角色世界书</label>
                 <span className={`flex-1 text-[16px] truncate ${tempSelectedWorldBookName ? 'text-gray-900' : 'text-gray-300'}`}>
                   {tempSelectedWorldBookName || '未选择'}
@@ -165,7 +169,6 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
               </div>
             </div>
 
-            {/* 分组2: 描述与设定 */}
             <div className="bg-white border-t border-b border-gray-200">
               <div className="p-4 border-b border-gray-100">
                 <label className="block text-[16px] text-gray-900 mb-2">描述</label>
@@ -188,10 +191,6 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
                 />
               </div>
             </div>
-            
-            <div className="px-5 py-3 text-[13px] text-gray-500">
-              完善角色信息，让AI更好地模拟对话。
-            </div>
           </div>
         </motion.div>
       )}
@@ -203,9 +202,8 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 20 }}
           transition={{ duration: 0.15 }}
-          className="absolute inset-0 bg-[#EDEDED] flex flex-col z-50"
+          className="absolute inset-0 bg-[#EDEDED] flex flex-col z-[70]"
         >
-          {/* Header */}
           <div className="bg-[#F7F7F7] px-4 pt-12 pb-3 flex items-center border-b border-gray-200 shrink-0">
             <button onClick={() => setViewMode('form')} className="text-[#07C160] flex items-center -ml-1 active:opacity-50">
               <ChevronLeft size={28} />
@@ -213,45 +211,19 @@ export const AddCharacterView: React.FC<AddCharacterViewProps> = ({ onBack }) =>
             </button>
             <h1 className="flex-1 text-center text-[17px] font-semibold text-gray-900 pr-12">选择角色世界书</h1>
           </div>
-
-          {/* Content */}
           <div className="flex-1 overflow-y-auto py-3">
             <div className="bg-white border-t border-b border-gray-200">
-              {/* 修复点 2：添加“不使用”选项，允许用户清空世界书选择 */}
-              <div 
-                onClick={() => handleWorldBookSelect('', '')}
-                className="flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer border-b border-gray-100"
-              >
-                <span className="flex-1 text-[16px] text-gray-900">
-                  不使用世界书
-                </span>
-                {!tempSelectedWorldBookId && (
-                  <Check size={20} className="text-[#07C160] shrink-0 ml-2" />
-                )}
+              <div onClick={() => handleWorldBookSelect('', '')} className="flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer border-b border-gray-100">
+                <span className="flex-1 text-[16px] text-gray-900">不使用世界书</span>
+                {!tempSelectedWorldBookId && <Check size={20} className="text-[#07C160] shrink-0 ml-2" />}
               </div>
-
-              {/* 渲染已有的世界书 */}
               {worldBook.map((world, index) => (
-                <div 
-                  key={world.id}
-                  onClick={() => handleWorldBookSelect(world.id, world.name)}
-                  className={`flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer ${index !== worldBook.length - 1 ? 'border-b border-gray-100' : ''}`}
-                >
-                  <span className="flex-1 text-[16px] text-gray-900 truncate">
-                    {world.name}
-                  </span>
-                  {world.id === tempSelectedWorldBookId && (
-                    <Check size={20} className="text-[#07C160] shrink-0 ml-2" />
-                  )}
+                <div key={world.id} onClick={() => handleWorldBookSelect(world.id, world.name)} className={`flex items-center px-4 py-3 active:bg-gray-50 cursor-pointer ${index !== worldBook.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                  <span className="flex-1 text-[16px] text-gray-900 truncate">{world.name}</span>
+                  {world.id === tempSelectedWorldBookId && <Check size={20} className="text-[#07C160] shrink-0 ml-2" />}
                 </div>
               ))}
             </div>
-            
-            {worldBook.length === 0 && (
-              <div className="text-center text-gray-500 pt-6 px-6 text-[14px]">
-                暂无世界书，请先在外部“世界书管理”中创建。
-              </div>
-            )}
           </div>
         </motion.div>
       )}

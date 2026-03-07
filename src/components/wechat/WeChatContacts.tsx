@@ -47,15 +47,12 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
     return a.localeCompare(b);
   });
 
-  // 构建扁平化的列表数据
   const listItems: ListItem[] = [];
 
-  // 添加固定section
   fixedSections.forEach(section => {
     listItems.push({ id: section.id, type: 'fixed-section', data: section });
   });
 
-  // 添加字母分组
   alphabeticalKeys.forEach(letter => {
     listItems.push({ id: `header-${letter}`, type: 'letter-header', letter });
     groupedCharacters[letter].forEach(character => {
@@ -63,7 +60,6 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
     });
   });
 
-  // 添加额外的固定联系人
   listItems.push({ id: 'file-helper', type: 'additional', data: { id: 'file-helper', name: '文件传输助手', icon: '📎', iconBg: 'bg-green-100', iconColor: 'text-green-500' } });
   listItems.push({ id: 'wechat-team', type: 'additional', data: { id: 'wechat-team', name: '微信团队', icon: MessageSquare, iconBg: 'bg-green-500', iconColor: 'text-white', isLucide: true } });
 
@@ -78,6 +74,13 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
     onSelectChat(characterId);
   };
 
+  const scrollToLetter = (letter: string) => {
+    const index = listItems.findIndex(item => item.type === 'letter-header' && item.letter === letter);
+    if (index !== -1) {
+      virtualizer.scrollToIndex(index, { align: 'start' });
+    }
+  };
+
   const renderItem = (item: ListItem) => {
     if (!item) return null;
 
@@ -85,14 +88,9 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
       return (
         <div className="flex items-center px-4 py-3 gap-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
           <div className={`w-12 h-12 ${item.data.color} rounded-xl flex items-center justify-center text-white shadow-sm`}>
-            {item.data.icon === Tag ? (
-              <Tag size={22} />
-            ) : (
-              <Users size={22} />
-            )}
+            {item.data.icon === Tag ? <Tag size={22} /> : <Users size={22} />}
           </div>
           <span className="flex-1 text-[16px] font-medium text-gray-900">{item.data.label}</span>
-          <ChevronRight size={20} className="text-gray-300" />
         </div>
       );
     }
@@ -120,7 +118,6 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
             )}
           </div>
           <span className="flex-1 text-[16px] font-medium text-gray-900">{character.name}</span>
-          <ChevronRight size={20} className="text-gray-300" />
         </div>
       );
     }
@@ -130,11 +127,7 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
       return (
         <div className="flex items-center px-4 py-3 gap-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
           <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center ${iconColor} shadow-sm`}>
-            {isLucide ? (
-              React.createElement(icon, { size: 22 })
-            ) : (
-              <span className="text-[18px]">{icon}</span>
-            )}
+            {isLucide ? React.createElement(icon, { size: 22 }) : <span className="text-[18px]">{icon}</span>}
           </div>
           <span className="flex-1 text-[16px] font-medium text-gray-900">{name}</span>
           <ChevronRight size={20} className="text-gray-300" />
@@ -146,11 +139,23 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
   };
 
   return (
-    <div className="flex-1 min-h-0 bg-white relative">
-      {/* Virtual List */}
+    // 1. 外壳：老老实实100%撑满父级的坑位，绝对不挤占外部空间，保住你的Tab
+    <div style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#fff' }}>
+      
+      {/* 2. 滚动层：内部用 absolute 钉死四角，强制浏览器立马给出真实高度给 Virtualizer 计算。加入 WebkitOverflowScrolling 支持手机顺滑滚动。 */}
       <div 
         ref={parentRef} 
-        className="h-full overflow-y-auto overflow-x-hidden touch-pan-y"
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
+        }}
       >
         <div
           style={{
@@ -161,19 +166,18 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
         >
           {virtualizer.getVirtualItems().map((virtualItem) => {
             const item = listItems[virtualItem.index];
-            const itemStyle: React.CSSProperties = {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualItem.start}px)`,
-            };
             return (
               <div
                 key={virtualItem.key}
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
-                style={itemStyle}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
               >
                 {renderItem(item)}
               </div>
@@ -182,17 +186,31 @@ export const WeChatContacts: React.FC<WeChatContactsProps> = ({ onSelectChat }) 
         </div>
       </div>
 
-      {/* Floating Alphabet Index */}
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-1 px-1">
+      {/* 3. 右侧字母表导航 */}
+      <div 
+        className="absolute right-0 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-1 px-1 z-10 pointer-events-auto"
+      >
         {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map((letter) => (
           <span
             key={letter}
+            onClick={(e) => {
+              e.stopPropagation();
+              scrollToLetter(letter);
+            }}
             className="text-[12px] text-gray-500 hover:text-[#07C160] cursor-pointer px-1"
           >
             {letter}
           </span>
         ))}
-        <span className="text-[12px] text-gray-500 hover:text-[#07C160] cursor-pointer px-1">#</span>
+        <span 
+          onClick={(e) => {
+            e.stopPropagation();
+            scrollToLetter('#');
+          }}
+          className="text-[12px] text-gray-500 hover:text-[#07C160] cursor-pointer px-1"
+        >
+          #
+        </span>
       </div>
     </div>
   );

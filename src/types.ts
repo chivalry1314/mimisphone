@@ -49,6 +49,7 @@ export interface WeChatMessage {
   role: 'user' | 'character';
   content: string;
   timestamp: number;
+  quoteText?: string;
 }
 
 export interface WeChatSession {

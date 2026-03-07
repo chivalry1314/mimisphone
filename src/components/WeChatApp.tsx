@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus } from 'lucide-react';
-import { WeChatTabBar, AddCharacterView, WeChatChats, WeChatContacts, WeChatChatView, WeChatDiscover, WeChatProfile, WeChatTab, WeChatView, WeChatAppProps } from './wechat';
+import { 
+  WeChatTabBar, 
+  AddCharacterView, 
+  WeChatChats, 
+  WeChatContacts, 
+  WeChatChatView, 
+  WeChatDiscover, 
+  WeChatProfile, 
+  ContactProfileView,
+  EditCharacterView,
+  EditMyProfileView,
+  EditMyNameView, // 引入更改名字页面
+  WeChatTab, 
+  WeChatView, 
+  WeChatAppProps 
+} from './wechat';
 
 export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<WeChatTab>('chat');
@@ -19,17 +34,24 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
   };
 
   const handleBack = () => {
-    if (currentView === 'chat') {
+    if (['chat', 'addCharacter', 'contactProfile', 'editMyProfile'].includes(currentView)) {
       setCurrentView('main');
-      setSelectedCharacterId(null);
-    } else if (currentView === 'addCharacter') {
-      setCurrentView('main');
+    } else if (currentView === 'editCharacter') {
+      setCurrentView('contactProfile');
+    } else if (currentView === 'editMyName') {
+      // 更改名字页面点击返回或保存后，回到个人信息页
+      setCurrentView('editMyProfile');
     }
   };
 
   const handleSelectChat = (characterId: string) => {
     setSelectedCharacterId(characterId);
     setCurrentView('chat');
+  };
+
+  const handleSelectContact = (characterId: string) => {
+    setSelectedCharacterId(characterId);
+    setCurrentView('contactProfile');
   };
 
   const handleAddCharacter = () => {
@@ -52,22 +74,22 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
             exit={{ opacity: 0 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* Header with Back Button */}
-            <div className="bg-[#F7F7F7] px-3 pt-12 pb-3 flex items-center border-b border-gray-200 shrink-0">
-              <button onClick={onClose} className="text-[#07C160] flex items-center gap-1">
-                <ChevronLeft size={24} />
-                <span className="text-[17px]">返回</span>
-              </button>
-              <h1 className="flex-1 text-center text-[17px] font-medium text-gray-900">{getTabTitle()}</h1>
-              {activeTab === 'contacts' && (
-                <button onClick={handleAddCharacter} className="text-[#07C160] p-1">
-                  <Plus size={26} />
+            {activeTab !== 'profile' && (
+              <div className="bg-[#F7F7F7] px-3 pt-12 pb-3 flex items-center border-b border-gray-200 shrink-0">
+                <button onClick={onClose} className="text-[#07C160] flex items-center gap-1 active:opacity-50">
+                  <ChevronLeft size={28} />
+                  <span className="text-[17px]">返回</span>
                 </button>
-              )}
-              {activeTab !== 'contacts' && <div className="w-6" />}
-            </div>
+                <h1 className="flex-1 text-center text-[17px] font-medium text-gray-900">{getTabTitle()}</h1>
+                {activeTab === 'contacts' && (
+                  <button onClick={handleAddCharacter} className="text-[#07C160] p-1 active:opacity-50">
+                    <Plus size={28} />
+                  </button>
+                )}
+                {activeTab !== 'contacts' && <div className="w-8" />}
+              </div>
+            )}
 
-            {/* Tab Content */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               {activeTab === 'chat' && (
                 <div className="absolute inset-0">
@@ -76,7 +98,7 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
               )}
               {activeTab === 'contacts' && (
                 <div className="absolute inset-0">
-                  <WeChatContacts onSelectChat={handleSelectChat} />
+                  <WeChatContacts onSelectChat={handleSelectContact} />
                 </div>
               )}
               {activeTab === 'discover' && (
@@ -86,12 +108,11 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
               )}
               {activeTab === 'profile' && (
                 <div className="absolute inset-0 overflow-y-auto">
-                  <WeChatProfile onClose={onClose} />
+                  <WeChatProfile onClose={onClose} onEditProfile={() => setCurrentView('editMyProfile')} />
                 </div>
               )}
             </div>
 
-            {/* Tab Bar */}
             <div className="h-14 shrink-0">
               <WeChatTabBar activeTab={activeTab} onTabChange={setActiveTab} />
             </div>
@@ -104,6 +125,39 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
 
         {currentView === 'addCharacter' && (
           <AddCharacterView key="add-character" onBack={handleBack} />
+        )}
+
+        {currentView === 'contactProfile' && selectedCharacterId && (
+          <ContactProfileView 
+            key="contact-profile"
+            characterId={selectedCharacterId} 
+            onBack={handleBack}
+            onSendMessage={(id) => {
+              setSelectedCharacterId(id);
+              setCurrentView('chat');
+            }}
+            onEditProfile={(id) => {
+              setSelectedCharacterId(id);
+              setCurrentView('editCharacter');
+            }}
+          />
+        )}
+
+        {currentView === 'editCharacter' && selectedCharacterId && (
+          <EditCharacterView key="edit-character" characterId={selectedCharacterId} onBack={handleBack} />
+        )}
+
+        {currentView === 'editMyProfile' && (
+          <EditMyProfileView 
+            key="edit-my-profile" 
+            onBack={handleBack} 
+            onEditName={() => setCurrentView('editMyName')} // 绑定跳转到修改名字页
+          />
+        )}
+
+        {/* 渲染新的修改名字页 */}
+        {currentView === 'editMyName' && (
+          <EditMyNameView key="edit-my-name" onBack={handleBack} />
         )}
       </AnimatePresence>
     </motion.div>

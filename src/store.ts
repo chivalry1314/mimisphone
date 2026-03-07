@@ -48,6 +48,7 @@ interface AppState {
   setWeChatCurrentSession: (id: string | null) => void;
   addWeChatMoment: (moment: Omit<WeChatMoment, 'id' | 'timestamp' | 'likes' | 'comments'>) => void;
   updateWeChatUserProfile: (profile: Partial<WeChatUserProfile>) => void;
+  deleteWeChatMessages: (sessionId: string, messageIds: string[]) => void;
 }
 
 const defaultSettings: Settings = {
@@ -240,6 +241,14 @@ export const useStore = create<AppState>()(
       updateWeChatUserProfile: (profile) =>
         set((state) => ({
           wechatUserProfile: { ...state.wechatUserProfile, ...profile },
+        })),
+      deleteWeChatMessages: (sessionId, messageIds) => 
+        set((state) => ({
+          wechatSessions: state.wechatSessions.map(session =>
+            session.id === sessionId
+              ? { ...session, messages: session.messages.filter(m => !messageIds.includes(m.id)) }
+              : session
+          )
         })),
     }),
     {
