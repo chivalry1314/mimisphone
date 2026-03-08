@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import { WorldInfoEntry, Settings, ChatSession, Message, WeChatCharacter, WeChatSession, WeChatMoment, WeChatUserProfile, WeChatMessage } from './types';
 
 // 兼容的 UUID 生成函数
@@ -89,6 +90,19 @@ const defaultWeChatCharacters: WeChatCharacter[] = [
     background: '',
   },
 ];
+
+// 定义基于 IndexedDB 的存储引擎
+const idbStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    return (await get(name)) || null;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    await set(name, value);
+  },
+  removeItem: async (name: string): Promise<void> => {
+    await del(name);
+  },
+};
 
 export const useStore = create<AppState>()(
   persist(
@@ -242,6 +256,7 @@ export const useStore = create<AppState>()(
         set((state) => ({
           wechatUserProfile: { ...state.wechatUserProfile, ...profile },
         })),
+        
       deleteWeChatMessages: (sessionId, messageIds) => 
         set((state) => ({
           wechatSessions: state.wechatSessions.map(session =>
@@ -253,6 +268,8 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'ai-chat-storage',
+      // 指定使用 IndexedDB 存储
+      storage: createJSONStorage(() => idbStorage),
     }
   )
 );

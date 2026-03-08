@@ -4,10 +4,11 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { 
   ChevronLeft, MoreHorizontal, Mic, Smile, Plus, User, 
   Copy, Forward, Star, Trash2, CheckSquare, MessageSquareQuote,
-  Check, Search, Box, Mail, XCircle
+  Check, Search, Box, Mail, XCircle, Maximize, X
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { WeChatChatViewProps } from './types';
+import { WeChatMessage } from '../../types';
 
 export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onBack }) => {
   const { 
@@ -16,7 +17,6 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
     addWeChatMessage, 
     deleteWeChatMessages,
     createWeChatSession,
-    wechatUserProfile,
     settings,
     worldBook
   } = useStore();
@@ -24,11 +24,23 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   
+  // 输入框状态
+  const [isMultiline, setIsMultiline] = useState(false);
+  const [showFullScreenEditor, setShowFullScreenEditor] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 菜单与多选状态
   const [menuState, setMenuState] = useState<{ messageId: string; x: number; y: number; text: string } | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<string | 'multi' | null>(null);
   const [quotingMessage, setQuotingMessage] = useState<{ senderName: string; content: string } | null>(null);
+
+  // --- 转发目标选择弹框状态 (图1) ---
+  const [forwardTargetModal, setForwardTargetModal] = useState<{ messageIds: string[] } | null>(null);
+  
+  // --- 全局底部提示 (Toast) ---
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -55,10 +67,23 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
     scrollToBottom();
   }, [messages.length, isTyping, quotingMessage]);
 
-  const handleMessageClick = (e: React.MouseEvent, messageId: string, text: string) => {
+  const adjustTextareaHeight = (element: HTMLTextAreaElement | null) => {
+    if (!element) return;
+    element.style.height = 'auto';
+    const scrollHeight = element.scrollHeight;
+    element.style.height = `${Math.min(scrollHeight, 120)}px`;
+    setIsMultiline(scrollHeight > 36);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    adjustTextareaHeight(e.target);
+  };
+
+  const handleMessageClick = (e: React.MouseEvent, msg: WeChatMessage) => {
     e.stopPropagation();
     if (isSelectionMode) {
-      toggleSelection(messageId);
+      toggleSelection(msg.id);
       return;
     }
 
@@ -68,7 +93,7 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
     const x = Math.min(Math.max(clientX - 100, 20), window.innerWidth - 220);
     const y = Math.max(clientY - 90, 100);
     
-    setMenuState({ messageId, x, y, text });
+    setMenuState({ messageId: msg.id, x, y, text: msg.content });
   };
 
   const toggleSelection = (messageId: string) => {
@@ -86,18 +111,15 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
 
   const executeDelete = () => {
     if (!session?.id) return;
-    
     let idsToDelete: string[] = [];
     if (deleteTarget === 'multi') {
       idsToDelete = selectedMessageIds;
     } else if (deleteTarget) {
       idsToDelete = [deleteTarget];
     }
-
     if (idsToDelete.length > 0) {
       deleteWeChatMessages(session.id, idsToDelete);
     }
-
     setDeleteTarget(null);
     if (deleteTarget === 'multi') {
       exitSelectionMode();
@@ -120,10 +142,51 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
     setMenuState(null);
   };
 
+  // --- 纯净逐条转发逻辑 ---
+  const executeForward = (targetCharacterId: string) => {
+    if (!forwardTargetModal) return;
+    const { messageIds } = forwardTargetModal;
+    
+    let targetSessionId = wechatSessions.find(s => s.characterId === targetCharacterId)?.id;
+    
+    // 静默创建会话，避免跳转
+    if (!targetSessionId) {
+      targetSessionId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      useStore.setState((state) => ({
+        wechatSessions: [
+          { id: targetSessionId!, characterId: targetCharacterId, messages: [], lastUpdated: Date.now(), unreadCount: 0 },
+          ...state.wechatSessions,
+        ]
+      }));
+    }
+
+    // 按时间顺序获取选中的消息
+    const msgsToForward = messages
+      .filter(m => messageIds.includes(m.id))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // 逐条写入目标会话 (统一作为用户自己发出的消息)
+    msgsToForward.forEach(m => {
+      addWeChatMessage(targetSessionId!, {
+        role: 'user', 
+        content: m.content
+      });
+    });
+
+    // 1. 关闭选人弹窗
+    setForwardTargetModal(null);
+    // 2. 取消多选状态
+    if (isSelectionMode) exitSelectionMode();
+    
+    // 3. 弹出 Toast 提示
+    setToastMessage('已转发');
+    setTimeout(() => setToastMessage(null), 2000);
+  };
+
   const handleSend = async () => {
     if (!inputValue.trim() || !character) return;
     if (!settings.apiKey) {
-      alert('请先在应用全局设置中配置 API Key！');
+      alert('请先配置 API Key！');
       return;
     }
 
@@ -133,16 +196,19 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
     const userText = inputValue.trim();
     const messageData: any = { role: 'user', content: userText };
     
-    // 如果存在引用状态，附加上去
     if (quotingMessage) {
       messageData.quoteText = `${quotingMessage.senderName}: ${quotingMessage.content}`;
     }
 
     addWeChatMessage(sessionId, messageData);
+    
     setInputValue('');
-    setQuotingMessage(null); // 发送完毕后清除引用状态
+    setQuotingMessage(null);
+    setShowFullScreenEditor(false);
+    setIsMultiline(false);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    
     scrollToBottom();
-
     setIsTyping(true);
 
     try {
@@ -160,7 +226,6 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
         { role: 'system', content: systemPrompt },
         ...chatHistory.map(m => {
           let content = m.content;
-          // 组装上下文时让大模型知道你引用了它的话
           if ((m as any).quoteText) {
             content = `[引用了: "${(m as any).quoteText}"]\n${content}`;
           }
@@ -261,7 +326,7 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
                 const message = messages[virtualItem.index];
                 const isUser = message.role === 'user';
                 const isSelected = selectedMessageIds.includes(message.id);
-                const quoteText = (message as any).quoteText;
+                const quoteText = message.quoteText;
                 
                 return (
                   <div 
@@ -290,17 +355,16 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
                       )}
 
                       <div className={`flex-1 flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''} ${isSelectionMode ? 'pointer-events-none' : ''}`}>
-                        <Avatar url={isUser ? wechatUserProfile?.avatar : character.avatar} />
+                        <Avatar url={isUser ? useStore.getState().wechatUserProfile?.avatar : character.avatar} />
                         
                         <div className={`relative max-w-[70%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                          {/* 主聊天气泡 */}
+                          
                           <div className={`relative flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                             <div className={`absolute top-3.5 w-0 h-0 border-[5px] border-transparent ${
                               isUser ? 'left-full border-l-[#95ec69]' : 'right-full border-r-white'
                             }`} />
-                            
                             <div 
-                              onClick={(e) => handleMessageClick(e, message.id, message.content)}
+                              onClick={(e) => handleMessageClick(e, message)}
                               className={`px-3.5 py-2.5 rounded-lg cursor-pointer ${
                                 menuState?.messageId === message.id ? 'brightness-90' : '' 
                               } ${
@@ -313,7 +377,6 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
                             </div>
                           </div>
 
-                          {/* 核心修复：发送后的引用框，彻底解决高度挤压导致重叠的问题 */}
                           {quoteText && (
                             <div 
                               className="mt-1 bg-[#E5E5E5] rounded-[4px] px-2 py-1 max-w-[100%] overflow-hidden" 
@@ -337,10 +400,21 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
           </div>
         </div>
 
-        {/* --- 底部操作栏 --- */}
+        {/* --- 底部输入/多选操作栏 --- */}
         {isSelectionMode ? (
           <div className="bg-[#F7F7F7] border-t border-gray-200 px-6 py-2 flex items-center justify-between shrink-0 pb-safe">
-            <button className="text-gray-800 active:opacity-50 p-2"><Forward size={24} strokeWidth={1.5} /></button>
+            <button 
+              onClick={() => {
+                if (selectedMessageIds.length > 0) {
+                  // 多选后直接呼出联系人列表，不再弹出方式选择
+                  setForwardTargetModal({ messageIds: selectedMessageIds });
+                }
+              }}
+              disabled={selectedMessageIds.length === 0}
+              className={`p-2 transition-opacity ${selectedMessageIds.length > 0 ? 'text-gray-800 active:opacity-50' : 'text-gray-300'}`}
+            >
+              <Forward size={24} strokeWidth={1.5} />
+            </button>
             <button className="text-gray-800 active:opacity-50 p-2"><Box size={24} strokeWidth={1.5} /></button>
             <button 
               onClick={() => setDeleteTarget('multi')} 
@@ -353,19 +427,36 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
           </div>
         ) : (
           <div className="bg-[#F7F7F7] border-t border-gray-200 px-2 py-2 flex flex-col shrink-0 pb-safe">
-            {/* 输入栏第一排：文本输入 */}
             <div className="flex items-end gap-2 w-full">
-              <button className="text-gray-700 active:opacity-50 p-1 mb-0.5 shrink-0 w-[32px] flex items-center justify-center">
-                <Mic size={28} strokeWidth={1.5} />
-              </button>
+              <div className="flex flex-col justify-end shrink-0 mb-0.5">
+                <AnimatePresence>
+                  {isMultiline && (
+                    <motion.button 
+                      initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.5, y: 10 }}
+                      transition={{ duration: 0.15 }}
+                      onClick={() => setShowFullScreenEditor(true)}
+                      className="text-gray-500 hover:text-gray-700 active:opacity-50 p-1 w-[32px] flex items-center justify-center mb-1"
+                    >
+                      <Maximize size={22} strokeWidth={1.5} />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+                <button className="text-gray-700 active:opacity-50 p-1 w-[32px] flex items-center justify-center">
+                  <Mic size={28} strokeWidth={1.5} />
+                </button>
+              </div>
               
-              <div className="flex-1 bg-white rounded-md border border-gray-200 min-h-[40px] flex items-center px-2 py-1.5">
+              <div className="flex-1 bg-white rounded-md border border-gray-200 min-h-[40px] flex px-2 py-1.5 box-border">
                 <textarea
+                  ref={textareaRef}
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   disabled={isTyping}
-                  className="w-full text-[16px] text-gray-900 outline-none resize-none bg-transparent max-h-24 leading-snug disabled:bg-transparent"
+                  style={{ minHeight: '24px' }}
+                  className="w-full text-[16px] text-gray-900 outline-none resize-none bg-transparent overflow-y-auto leading-snug disabled:bg-transparent"
                   rows={1}
                 />
               </div>
@@ -405,12 +496,9 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
               </div>
             </div>
 
-            {/* 输入栏第二排：引用预览 (复刻图1，使其独立于输入框并对齐) */}
             {quotingMessage && (
               <div className="flex gap-2 mt-2 w-full">
-                {/* 占位符，匹配麦克风按钮宽度 */}
                 <div className="w-[32px] shrink-0 pointer-events-none opacity-0" />
-                
                 <div className="flex-1 bg-[#EAEAEA] rounded-[4px] px-2 py-1.5 flex items-center justify-between overflow-hidden">
                   <span className="text-[13px] text-gray-500 truncate flex-1">
                     {quotingMessage.senderName}：{quotingMessage.content}
@@ -419,8 +507,6 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
                     <XCircle size={16} className="text-gray-400 fill-gray-200" />
                   </button>
                 </div>
-                
-                {/* 占位符，匹配右侧笑脸和加号宽度 */}
                 <div className="w-[32px] shrink-0 pointer-events-none opacity-0" />
                 <div className="w-[56px] shrink-0 pointer-events-none opacity-0" />
               </div>
@@ -429,7 +515,53 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
         )}
       </motion.div>
 
-      {/* --- 功能弹框菜单层 --- */}
+      {/* 全屏编辑器 */}
+      <AnimatePresence>
+        {showFullScreenEditor && (
+          <motion.div
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[120] bg-[#F7F7F7] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-[#F7F7F7] border-b border-gray-200">
+              <button 
+                onClick={() => setShowFullScreenEditor(false)}
+                className="text-[16px] text-gray-900 active:opacity-50 px-1"
+              >
+                取消
+              </button>
+              <div className="text-[17px] font-medium text-gray-900">编辑文字</div>
+              <button 
+                onClick={handleSend}
+                disabled={!inputValue.trim() || isTyping}
+                className={`px-4 py-1.5 rounded-[4px] text-[15px] font-medium transition-colors ${
+                  !inputValue.trim() || isTyping 
+                    ? 'bg-gray-200 text-gray-400' 
+                    : 'bg-[#07C160] text-white active:bg-[#06ad56]'
+                }`}
+              >
+                发送
+              </button>
+            </div>
+            <div className="flex-1 p-4 bg-white">
+              <textarea
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  adjustTextareaHeight(textareaRef.current);
+                }}
+                autoFocus
+                className="w-full h-full text-[17px] text-gray-900 outline-none resize-none leading-relaxed bg-transparent"
+                placeholder="请输入消息..."
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 单击弹出的原生气泡菜单 --- */}
       <AnimatePresence>
         {menuState && (
           <div className="fixed inset-0 z-[100]" onClick={() => setMenuState(null)}>
@@ -443,7 +575,12 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
               onClick={(e) => e.stopPropagation()}
             >
               <MenuItem icon={Copy} label="复制" onClick={() => handleCopy(menuState.text)} />
-              <MenuItem icon={Forward} label="转发" onClick={() => setMenuState(null)} />
+              
+              <MenuItem icon={Forward} label="转发" onClick={() => {
+                setForwardTargetModal({ messageIds: [menuState.messageId] });
+                setMenuState(null);
+              }} />
+              
               <MenuItem icon={Star} label="收藏" onClick={() => setMenuState(null)} />
               <MenuItem icon={Trash2} label="删除" onClick={() => {
                 setDeleteTarget(menuState.messageId);
@@ -459,7 +596,7 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
                 if (targetMsg) {
                   let sName = character.name;
                   if (targetMsg.role === 'user') {
-                    sName = wechatUserProfile?.name || '我';
+                    sName = useStore.getState().wechatUserProfile?.name || '我';
                   }
                   setQuotingMessage({ senderName: sName, content: menuState.text });
                 }
@@ -470,7 +607,42 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
         )}
       </AnimatePresence>
 
-      {/* --- 删除确认弹窗 --- */}
+      {/* --- 选择目标联系人弹框 (图1) --- */}
+      <AnimatePresence>
+        {forwardTargetModal && (
+          <motion.div
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[120] bg-white flex flex-col"
+          >
+            <div className="bg-[#F7F7F7] px-4 pt-12 pb-2.5 flex items-center border-b border-gray-200 shrink-0">
+              <button onClick={() => setForwardTargetModal(null)} className="text-gray-900 flex items-center active:opacity-50">
+                <X size={28} strokeWidth={1.5} />
+              </button>
+              <h1 className="flex-1 text-center text-[17px] font-medium text-gray-900 pr-7">
+                选择一个聊天
+              </h1>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {wechatCharacters.map(char => (
+                <div 
+                  key={char.id} 
+                  onClick={() => executeForward(char.id)}
+                  className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 active:bg-gray-50 cursor-pointer"
+                >
+                  <Avatar url={char.avatar} />
+                  <span className="text-[17px] text-gray-900">{char.name}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 删除确认弹窗 */}
       <AnimatePresence>
         {deleteTarget && (
           <div className="fixed inset-0 z-[110] bg-black/40 flex items-center justify-center">
@@ -494,6 +666,22 @@ export const WeChatChatView: React.FC<WeChatChatViewProps> = ({ characterId, onB
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- 全局底部轻提示 (Toast) --- */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-[120px] left-1/2 z-[200] bg-black/70 text-white px-5 py-2.5 rounded-[8px] text-[15px] whitespace-nowrap shadow-md flex items-center gap-2"
+          >
+            <Check size={18} strokeWidth={2.5} />
+            {toastMessage}
+          </motion.div>
         )}
       </AnimatePresence>
     </>
