@@ -18,6 +18,12 @@ import {
   WeChatAppProps 
 } from './wechat';
 
+import { WeChatServicesView } from './wechat/WeChatServicesView';
+import { WeChatWalletView } from './wechat/WeChatWalletView';
+import { WeChatBalanceView } from './wechat/WeChatBalanceView';
+import { WeChatTopUpView } from './wechat/WeChatTopUpView';
+import { WeChatWithdrawView } from './wechat/WeChatWithdrawView';
+
 export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<WeChatTab>('chat');
   const [currentView, setCurrentView] = useState<WeChatView>('main');
@@ -34,13 +40,19 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
   };
 
   const handleBack = () => {
-    if (['chat', 'addCharacter', 'contactProfile', 'editMyProfile'].includes(currentView)) {
+    if (['chat', 'addCharacter', 'contactProfile', 'editMyProfile', 'services'].includes(currentView)) {
       setCurrentView('main');
     } else if (currentView === 'editCharacter') {
       setCurrentView('contactProfile');
     } else if (currentView === 'editMyName') {
       // 更改名字页面点击返回或保存后，回到个人信息页
       setCurrentView('editMyProfile');
+    } else if (currentView === 'wallet') {
+      setCurrentView('services');
+    } else if (currentView === 'balance') {
+      setCurrentView('wallet');
+    } else if (currentView === 'topUp' || currentView === 'withdraw') {
+      setCurrentView('balance');
     }
   };
 
@@ -108,7 +120,11 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
               )}
               {activeTab === 'profile' && (
                 <div className="absolute inset-0 overflow-y-auto">
-                  <WeChatProfile onClose={onClose} onEditProfile={() => setCurrentView('editMyProfile')} />
+                  <WeChatProfile 
+                    onClose={onClose} 
+                    onEditProfile={() => setCurrentView('editMyProfile')} 
+                    onServicesClick={() => setCurrentView('services')}
+                  />
                 </div>
               )}
             </div>
@@ -158,6 +174,26 @@ export const WeChatApp: React.FC<WeChatAppProps> = ({ onClose }) => {
         {/* 渲染新的修改名字页 */}
         {currentView === 'editMyName' && (
           <EditMyNameView key="edit-my-name" onBack={handleBack} />
+        )}
+        {currentView === 'services' && (
+          <WeChatServicesView key="services" onBack={handleBack} onWalletClick={() => setCurrentView('wallet')} />
+        )}
+        {currentView === 'wallet' && (
+          <WeChatWalletView key="wallet" onBack={handleBack} onBalanceClick={() => setCurrentView('balance')} />
+        )}
+        {currentView === 'balance' && (
+          <WeChatBalanceView 
+            key="balance" 
+            onBack={handleBack} 
+            onTopUpClick={() => setCurrentView('topUp')}
+            onWithdrawClick={() => setCurrentView('withdraw')} 
+          />
+        )}
+        {currentView === 'topUp' && (
+          <WeChatTopUpView key="topUp" onBack={handleBack} />
+        )}
+        {currentView === 'withdraw' && (
+          <WeChatWithdrawView key="withdraw" onBack={handleBack} />
         )}
       </AnimatePresence>
     </motion.div>

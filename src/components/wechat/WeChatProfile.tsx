@@ -3,7 +3,7 @@ import { ChevronRight, Camera, QrCode, User as UserIcon, Wallet, Star, Image as 
 import { useStore } from '../../store';
 import { WeChatProfileProps } from './types';
 
-export const WeChatProfile: React.FC<WeChatProfileProps> = ({ onClose, onEditProfile }) => {
+export const WeChatProfile: React.FC<WeChatProfileProps> = ({ onClose, onEditProfile, onServicesClick }) => {
   const { wechatUserProfile } = useStore();
 
   const Row = ({ icon: Icon, label, color, border = true, onClick }: any) => (
@@ -55,7 +55,7 @@ export const WeChatProfile: React.FC<WeChatProfileProps> = ({ onClose, onEditPro
 
       {/* 服务 */}
       <div className="mt-2 border-t border-b border-gray-100">
-        <Row icon={Wallet} label="服务" color="text-[#27A372]" border={false} />
+        <Row icon={Wallet} label="服务" color="text-[#27A372]" border={false} onClick={onServicesClick} />
       </div>
 
       {/* 收藏、朋友圈等 */}

@@ -50,6 +50,8 @@ interface AppState {
   addWeChatMoment: (moment: Omit<WeChatMoment, 'id' | 'timestamp' | 'likes' | 'comments'>) => void;
   updateWeChatUserProfile: (profile: Partial<WeChatUserProfile>) => void;
   deleteWeChatMessages: (sessionId: string, messageIds: string[]) => void;
+  topUpWeChatBalance: (amount: number) => void;
+  withdrawWeChatBalance: (amount: number) => void;
 }
 
 const defaultSettings: Settings = {
@@ -68,6 +70,7 @@ const defaultWeChatUserProfile: WeChatUserProfile = {
   description: '这个人很懒，什么都没写',
   region: '北京',
   backgroundImage: '',
+  balance: 0,
 };
 
 const defaultWeChatCharacters: WeChatCharacter[] = [
@@ -264,6 +267,20 @@ export const useStore = create<AppState>()(
               ? { ...session, messages: session.messages.filter(m => !messageIds.includes(m.id)) }
               : session
           )
+        })),
+      topUpWeChatBalance: (amount) => 
+        set((state) => ({
+          wechatUserProfile: {
+            ...state.wechatUserProfile,
+            balance: (state.wechatUserProfile.balance || 0) + amount
+          }
+        })),
+      withdrawWeChatBalance: (amount) => 
+        set((state) => ({
+          wechatUserProfile: {
+            ...state.wechatUserProfile,
+            balance: Math.max(0, (state.wechatUserProfile.balance || 0) - amount)
+          }
         })),
     }),
     {

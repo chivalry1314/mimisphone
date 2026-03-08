@@ -10,3 +10,8 @@ export * from './ContactProfileView';
 export * from './EditCharacterView';
 export * from './EditMyProfileView';
 export * from './EditMyNameView';
+export * from './WeChatServicesView';
+export * from './WeChatWalletView';
+export * from './WeChatBalanceView';
+export * from './WeChatTopUpView';
+export * from './WeChatWithdrawView';

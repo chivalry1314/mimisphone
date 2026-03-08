@@ -50,6 +50,8 @@ export interface WeChatMessage {
   content: string;
   timestamp: number;
   quoteText?: string;
+  type?: 'text' | 'transfer' | 'transfer_accepted';
+  amount?: number;
 }
 
 export interface WeChatSession {
@@ -84,4 +86,5 @@ export interface WeChatUserProfile {
   description: string;
   region: string;
   backgroundImage: string;
+  balance?: number;
 }
