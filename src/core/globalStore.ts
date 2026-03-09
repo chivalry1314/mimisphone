@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
+import type { GlobalSettings, WorldInfoEntry } from './sdk/types';
 
 // 定义基于 IndexedDB 的存储引擎
 const idbStorage: StateStorage = {
@@ -15,25 +16,8 @@ const idbStorage: StateStorage = {
   },
 };
 
-// 全局设置类型
-export interface GlobalSettings {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-}
-
-// 世界书条目类型
-export interface WorldInfoEntry {
-  id: string;
-  name: string;
-  keywords: string[];
-  content: string;
-  triggerMode: 'keyword' | 'constant' | 'disabled';
-  insertionOrder: number;
-  scope: 'global' | 'character';
-}
+// 从 SDK 重新导出类型，保持向后兼容
+export type { GlobalSettings, WorldInfoEntry };
 
 interface GlobalState {
   // 全局设置 - 所有应用共享
