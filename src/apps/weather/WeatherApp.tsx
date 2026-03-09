@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Cloud, Sun, CloudRain, Wind, Droplets } from 'lucide-react';
-import { WeatherWidget } from './components';
+import { ChevronLeft, Wind, Droplets, Sun } from 'lucide-react';
+import { WeatherWidget } from './components/WeatherWidget';
 
 interface WeatherAppProps {
   onClose: () => void;
@@ -12,74 +12,76 @@ export const WeatherApp: React.FC<WeatherAppProps> = ({ onClose }) => {
 
   const cities = [
     { name: '萧县', temp: 22, condition: '多云' },
-    { name: '北京', temp: 15, condition: '晴' },
-    { name: '上海', temp: 18, condition: '阴' },
-    { name: '广州', temp: 25, condition: '雨' },
+    { name: '北京', temp: 15, condition: '晴朗' },
+    { name: '上海', temp: 18, condition: '阴天' },
+    { name: '广州', temp: 25, condition: '阵雨' },
   ];
 
   return (
     <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
+      initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.9, opacity: 0 }}
-      className="absolute inset-0 z-50 bg-gradient-to-b from-blue-400 to-blue-600 flex flex-col"
+      exit={{ scale: 0.95, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      // 清新柔和的极低饱和度浅空蓝与微薄荷渐变
+      className="absolute inset-0 z-50 bg-gradient-to-br from-sky-50 via-blue-50/50 to-teal-50 flex flex-col font-sans"
     >
-      {/* Header */}
-      <div className="px-3 pt-12 pb-4 flex items-center">
-        <button onClick={onClose} className="text-white flex items-center gap-1 active:opacity-50">
+      {/* 顶部导航 */}
+      <div className="px-2 pt-12 pb-2 flex items-center z-10 bg-white/30 backdrop-blur-md border-b border-white/50">
+        <button onClick={onClose} className="text-slate-500 flex items-center gap-1 active:scale-95 transition-transform p-2">
           <ChevronLeft size={28} />
-          <span className="text-[17px]">返回</span>
+          <span className="text-[17px] font-medium">天气</span>
         </button>
-        <h1 className="flex-1 text-center text-[17px] font-medium text-white">天气</h1>
-        <div className="w-8" />
       </div>
 
-      {/* Weather Widget */}
-      <div className="px-4">
-        <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4">
+      <div className="flex-1 overflow-y-auto pb-10 scrollbar-hide pt-4">
+        {/* 核心组件 */}
+        <div className="px-5">
           <WeatherWidget />
         </div>
-      </div>
 
-      {/* City List */}
-      <div className="flex-1 px-4 mt-6">
-        <h2 className="text-white/80 text-[15px] mb-3">热门城市</h2>
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
-          {cities.map((city, index) => (
-            <div
-              key={city.name}
-              className={`flex items-center justify-between px-4 py-3 ${
-                index < cities.length - 1 ? 'border-b border-white/10' : ''
-              } ${city.name === selectedCity ? 'bg-white/10' : ''}`}
-              onClick={() => setSelectedCity(city.name)}
-            >
-              <span className="text-white text-[16px]">{city.name}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-white/80 text-[14px]">{city.condition}</span>
-                <span className="text-white text-[18px] font-medium">{city.temp}°</span>
-              </div>
+        {/* 附加信息卡片（柔和白玻璃） */}
+        <div className="px-5 mt-4">
+          <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-5 flex justify-between shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="flex flex-col items-center gap-2">
+              <div className="bg-sky-100/80 p-2 rounded-full"><Wind size={20} className="text-sky-500" /></div>
+              <span className="text-slate-400 text-[12px] font-medium">风速</span>
+              <span className="text-slate-700 text-[15px] font-semibold">3级</span>
             </div>
-          ))}
+            <div className="flex flex-col items-center gap-2">
+              <div className="bg-blue-100/80 p-2 rounded-full"><Droplets size={20} className="text-blue-500" /></div>
+              <span className="text-slate-400 text-[12px] font-medium">湿度</span>
+              <span className="text-slate-700 text-[15px] font-semibold">65%</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="bg-amber-100/80 p-2 rounded-full"><Sun size={20} className="text-amber-500" /></div>
+              <span className="text-slate-400 text-[12px] font-medium">紫外线</span>
+              <span className="text-slate-700 text-[15px] font-semibold">中等</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Additional Info */}
-      <div className="px-4 pb-8 mt-4">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex justify-around">
-          <div className="flex flex-col items-center gap-1">
-            <Wind size={20} className="text-white/80" />
-            <span className="text-white/60 text-[12px]">风速</span>
-            <span className="text-white text-[14px]">3级</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Droplets size={20} className="text-white/80" />
-            <span className="text-white/60 text-[12px]">湿度</span>
-            <span className="text-white text-[14px]">65%</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Sun size={20} className="text-white/80" />
-            <span className="text-white/60 text-[12px]">紫外线</span>
-            <span className="text-white text-[14px]">中等</span>
+        {/* 城市列表 */}
+        <div className="px-5 mt-6 mb-6">
+          <h2 className="text-slate-400 text-[14px] font-medium mb-3 pl-1">我的城市</h2>
+          <div className="flex flex-col gap-3">
+            {cities.map((city) => (
+              <div
+                key={city.name}
+                onClick={() => setSelectedCity(city.name)}
+                className={`flex items-center justify-between px-5 py-4 rounded-2xl backdrop-blur-md transition-all active:scale-[0.98] cursor-pointer border ${
+                  city.name === selectedCity 
+                    ? 'bg-white/90 border-white shadow-[0_4px_20px_rgb(0,0,0,0.05)]' 
+                    : 'bg-white/40 border-white/50 hover:bg-white/60'
+                }`}
+              >
+                <div className="flex flex-col">
+                  <span className="text-slate-700 text-[18px] font-medium tracking-wide">{city.name}</span>
+                  <span className="text-slate-500 text-[13px] mt-0.5">{city.condition}</span>
+                </div>
+                <div className="text-slate-700 text-[28px] font-light">{city.temp}°</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
