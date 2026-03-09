@@ -1,0 +1,132 @@
+/**
+ * CSS Modules 示例
+ *
+ * 使用场景：
+ * - 复杂动画关键帧
+ * - 特殊的背景图定位
+ * - 需要明确作用域的复杂样式
+ *
+ * 特点：
+ * - 构建工具会自动添加唯一哈希后缀
+ * - 即使不同应用使用相同类名也不会冲突
+ * - 彻底实现物理与作用域双重隔离
+ */
+
+/* 复杂卡片样式 - 包含特殊背景和动画 */
+.complexCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 复杂动画背景 */
+.complexCard::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.starIcon {
+  color: #fbbf24;
+  fill: #fbbf24;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.cardContent {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.cardTitle {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.cardDesc {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 12px;
+  background: rgba(34, 197, 94, 0.3);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  border-radius: 20px;
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 自定义按钮 - 复杂 hover 效果 */
+.customButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.customButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.customButton:active {
+  transform: translateY(0);
+}
+
+/* 点击波纹效果 */
+.customButton::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.customButton:active::after {
+  width: 200px;
+  height: 200px;
+}

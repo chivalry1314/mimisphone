@@ -18,9 +18,13 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@mimisOS/sdk": [
+        "./src/core/sdk/index.ts"
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"]
   }
 }

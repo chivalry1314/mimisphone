@@ -1,10 +1,6 @@
 import React from 'react';
 import { Cloud, Navigation } from 'lucide-react';
 
-/**
- * 桌面天气小组件 - 仅供桌面展示使用
- * 完整天气应用请打开天气App
- */
 export const WeatherWidget: React.FC = () => {
   const hours = [
     { time: '16时', temp: '22°', icon: 'cloud' },
@@ -31,7 +27,7 @@ export const WeatherWidget: React.FC = () => {
           <span className="text-[11px] text-white/60">最高 23° 最低 17°</span>
         </div>
       </div>
-
+      
       <div className="flex justify-between mt-auto pt-2 border-t border-white/10">
         {hours.map((h, i) => (
           <div key={i} className="flex flex-col items-center gap-1">

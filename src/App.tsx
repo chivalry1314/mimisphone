@@ -8,15 +8,15 @@ import { LockScreen } from './components/LockScreen';
 import { WeatherWidget } from './components/WeatherWidget';
 import { BatteryWidget } from './components/BatteryWidget';
 import { CalendarWidget } from './components/CalendarWidget';
-import { ChatApp } from './components/ChatApp';
-import { WorldBookApp } from './components/WorldBookApp';
-import { SettingsApp } from './components/SettingsApp';
-import { WeChatApp } from './components/WeChatApp';
-import { Search, Mic, Clock, Flower2 } from 'lucide-react';
+import { desktopApps, getAppComponent } from './core/registry';
+import { Search, Flower2 } from 'lucide-react';
 
 export default function App() {
   const [isLocked, setIsLocked] = useState(false);
-  const [activeApp, setActiveApp] = useState<'chat' | 'worldbook' | 'settings' | 'wechat' | null>(null);
+  const [activeAppId, setActiveAppId] = useState<string | null>(null);
+
+  // 获取当前激活的应用组件
+  const ActiveAppComponent = activeAppId ? getAppComponent(activeAppId) : null;
 
   return (
     <div className="relative w-full h-screen bg-[#8fb6c7] overflow-hidden flex flex-col">
@@ -24,11 +24,11 @@ export default function App() {
         {isLocked && <LockScreen onUnlock={() => setIsLocked(false)} />}
       </AnimatePresence>
 
+      {/* 动态渲染激活的应用 */}
       <AnimatePresence>
-        {activeApp === 'chat' && <ChatApp onClose={() => setActiveApp(null)} />}
-        {activeApp === 'worldbook' && <WorldBookApp onClose={() => setActiveApp(null)} />}
-        {activeApp === 'settings' && <SettingsApp onClose={() => setActiveApp(null)} />}
-        {activeApp === 'wechat' && <WeChatApp onClose={() => setActiveApp(null)} />}
+        {activeAppId && ActiveAppComponent && (
+          <ActiveAppComponent onClose={() => setActiveAppId(null)} />
+        )}
       </AnimatePresence>
 
       {/* Wallpaper - Water Ripple Theme */}
@@ -40,21 +40,10 @@ export default function App() {
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-blue-400/10 backdrop-blur-[1px]" />
-
-        {/* Floating Flowers - Using Lucide Icons instead of images for reliability */}
-        <div className="absolute top-20 left-20 opacity-60 animate-float">
-          <Flower2 size={40} className="text-white" />
-        </div>
-        <div className="absolute top-1/2 right-10 opacity-40 animate-float" style={{ animationDelay: '1s' }}>
-          <Flower2 size={32} className="text-white" />
-        </div>
-        <div className="absolute bottom-60 left-1/4 opacity-50 animate-float" style={{ animationDelay: '2s' }}>
-          <Flower2 size={48} className="text-white" />
-        </div>
       </div>
 
       {/* Status Bar */}
-      <StatusBar dark={!!activeApp} />
+      <StatusBar dark={!!activeAppId} />
 
       {/* Main Content Area */}
       <main className="flex-1 z-10 overflow-y-auto pt-4 pb-32 px-6 flex flex-col gap-8">
@@ -74,31 +63,26 @@ export default function App() {
           </Widget>
         </div>
 
-        {/* App Grid */}
+        {/* App Grid - 动态渲染已注册的应用 */}
         <div className="grid grid-cols-4 gap-y-8 mt-2">
+          {/* 静态系统占位图标 */}
           <AppIcon name="App Store" icon="AppWindow" label="App Store" />
-          <AppIcon name="Weather" icon="Cloud" label="天气" />
           <AppIcon name="Tools" isFolder label="工具" />
-          <AppIcon
-            name="Notes"
-            icon="StickyNote"
-            label="备忘录"
-            onClick={() => setActiveApp('worldbook')}
-          />
 
+          {/* 动态渲染已注册的应用图标 */}
+          {desktopApps.map(app => (
+            <AppIcon
+              key={app.id}
+              name={app.name}
+              icon={app.icon as any}
+              color={app.color}
+              label={app.name}
+              onClick={() => setActiveAppId(app.id)}
+            />
+          ))}
+
+          {/* 更多静态占位图标 */}
           <AppIcon name="Maps" icon="MapPin" label="地图" />
-          <AppIcon
-            name="Settings"
-            icon="Settings"
-            label="设置"
-            onClick={() => setActiveApp('settings')}
-          />
-          <AppIcon
-            name="WeChat"
-            icon="MessageCircle"
-            label="微信"
-            onClick={() => setActiveApp('wechat')}
-          />
           <AppIcon name="Clock" isClock label="时钟" />
         </div>
 
@@ -113,10 +97,10 @@ export default function App() {
       </main>
 
       {/* Home Dock - Only show when no app is active */}
-      {!activeApp && <HomeDock />}
+      {!activeAppId && <HomeDock />}
 
       {/* Home Indicator - Only show when no app is active */}
-      {!activeApp && (
+      {!activeAppId && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/30 rounded-full z-50" />
       )}
     </div>
