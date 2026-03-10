@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, Globe, Cpu, Key, Shield, Info, Bell, Moon, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe, Cpu, Key, Shield, Info, Bell, Moon, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useSettingsStore } from './store';
+import { useGlobalStore } from '../../core/globalStore';
+import { BeautifyView, ThemeManageView, IconManageView, WidgetManageView, WidgetEditorView, DesktopLayoutView, DesktopEditModeView } from './components';
+
+type ViewType = 'main' | 'api' | 'beautify' | 'themeManage' | 'iconManage' | 'widgetManage' | 'widgetEditor' | 'layout' | 'editMode';
 
 interface SettingsAppProps {
   onClose: () => void;
@@ -9,7 +13,8 @@ interface SettingsAppProps {
 
 export const SettingsApp: React.FC<SettingsAppProps> = ({ onClose }) => {
   const { settings, updateSettings } = useSettingsStore();
-  const [currentView, setCurrentView] = useState<'main' | 'api'>('main');
+  const { desktopLayout } = useGlobalStore();
+  const [currentView, setCurrentView] = useState<ViewType>('main');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -59,13 +64,24 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ onClose }) => {
             <ChevronRight size={20} className="text-gray-300" />
           </button>
 
+          <button
+            onClick={() => setCurrentView('beautify')}
+            className="w-full flex items-center px-4 py-3 gap-3 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-100"
+          >
+            <div className="w-7 h-7 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg flex items-center justify-center text-white">
+              <Sparkles size={18} />
+            </div>
+            <span className="flex-1 text-left text-[16px]">UI 美化</span>
+            <ChevronRight size={20} className="text-gray-300" />
+          </button>
+
           <div className="w-full flex items-center px-4 py-3 gap-3 opacity-50 cursor-not-allowed border-b border-gray-100">
             <div className="w-7 h-7 bg-gray-500 rounded-lg flex items-center justify-center text-white">
               <Bell size={18} />
             </div>
             <span className="flex-1 text-left text-[16px]">通知</span>
             <ChevronRight size={20} className="text-gray-300" />
-          </div>
+          </div> 
 
           <div className="w-full flex items-center px-4 py-3 gap-3 opacity-50 cursor-not-allowed">
             <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center text-white">
@@ -222,14 +238,28 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ onClose }) => {
     >
       <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 pt-12 pb-4 flex items-center justify-between">
         <button
-          onClick={() => currentView === 'main' ? onClose() : setCurrentView('main')}
+          onClick={() => {
+            if (currentView === 'main') {
+              onClose();
+            } else if (currentView === 'widgetEditor') {
+              setCurrentView('widgetManage');
+            } else if (currentView === 'editMode') {
+              setCurrentView('layout');
+            } else if (currentView === 'layout') {
+              setCurrentView('beautify');
+            } else if (currentView === 'themeManage' || currentView === 'iconManage' || currentView === 'widgetManage') {
+              setCurrentView('beautify');
+            } else {
+              setCurrentView('main');
+            }
+          }}
           className="flex items-center text-[#007AFF] gap-1"
         >
           <ChevronLeft size={24} />
-          <span className="text-[17px]">{currentView === 'main' ? '返回' : '设置'}</span>
+          <span className="text-[17px]">{currentView === 'main' ? '返回' : currentView === 'api' ? '设置' : currentView === 'beautify' ? '设置' : '美化'}</span>
         </button>
         <h1 className="text-[17px] font-semibold absolute left-1/2 -translate-x-1/2">
-          {currentView === 'main' ? '设置' : 'API 设置'}
+          {currentView === 'main' ? '设置' : currentView === 'api' ? 'API 设置' : currentView === 'beautify' ? 'UI 美化' : currentView === 'themeManage' ? '主题' : currentView === 'widgetManage' ? '组件管理' : currentView === 'widgetEditor' ? '编辑组件' : currentView === 'layout' ? '布局' : currentView === 'editMode' ? '编辑模式' : '图标'}
         </h1>
         <div className="w-10" />
       </div>
@@ -243,7 +273,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ onClose }) => {
           transition={{ duration: 0.2 }}
           className="flex-1 flex flex-col overflow-hidden"
         >
-          {currentView === 'main' ? renderMainView() : renderApiView()}
+          {currentView === 'main' ? renderMainView() : currentView === 'api' ? renderApiView() : currentView === 'beautify' ? <BeautifyView onNavigateToThemeManage={() => setCurrentView('themeManage')} onNavigateToIconManage={() => setCurrentView('iconManage')} onNavigateToWidgetManage={() => setCurrentView('widgetManage')} onNavigateToLayout={() => setCurrentView('layout')} /> : currentView === 'themeManage' ? <ThemeManageView onBack={() => setCurrentView('beautify')} /> : currentView === 'widgetManage' ? <WidgetManageView onNavigateToEditor={() => setCurrentView('widgetEditor')} /> : currentView === 'widgetEditor' ? <WidgetEditorView /> : currentView === 'layout' ? <DesktopLayoutView onEditLayout={() => setCurrentView('editMode')} /> : currentView === 'editMode' ? <DesktopEditModeView rows={desktopLayout.rows || 6} cols={desktopLayout.cols || 4} onSave={() => setCurrentView('layout')} /> : <IconManageView />}
         </motion.div>
       </AnimatePresence>
     </motion.div>

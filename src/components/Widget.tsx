@@ -26,7 +26,7 @@ export const Widget: React.FC<WidgetProps> = ({ title, children, size = 'medium'
       </div>
       {title && (
         <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-full text-center">
-          <span className="text-[11px] font-medium text-white/80 tracking-wide">{title}</span>
+          <span className="text-[11px] font-medium text-black/80 tracking-wide">{title}</span>
         </div>
       )}
     </motion.div>

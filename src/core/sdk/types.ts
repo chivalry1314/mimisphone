@@ -74,6 +74,17 @@ export interface GlobalSettings {
   model: string;
   temperature: number;
   maxTokens: number;
+  // 壁纸设置
+  wallpaper: string | null;
+  wallpaperOpacity: number;
+  // 自定义图标设置
+  customIcons: Record<string, string>;
+  // 全局图标样式
+  iconSize: number;
+  iconRadius: number;
+  iconFrosted: number;
+  iconShadow: number;
+  showAppName: boolean;
 }
 
 /** 世界书条目 */

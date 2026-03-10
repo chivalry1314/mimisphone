@@ -19,7 +19,7 @@ export const BatteryWidget: React.FC = () => {
               cy="24"
               r="20"
               fill="transparent"
-              stroke="rgba(255,255,255,0.1)"
+              stroke="rgba(0,0,0,0.1)"
               strokeWidth="4"
             />
             {d.active && (
@@ -28,7 +28,7 @@ export const BatteryWidget: React.FC = () => {
                 cy="24"
                 r="20"
                 fill="transparent"
-                stroke="white"
+                stroke="black"
                 strokeWidth="4"
                 strokeDasharray={2 * Math.PI * 20}
                 strokeDashoffset={2 * Math.PI * 20 * (1 - d.level / 100)}
@@ -36,7 +36,7 @@ export const BatteryWidget: React.FC = () => {
               />
             )}
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center text-white/80">
+          <div className="absolute inset-0 flex items-center justify-center text-black/80">
             {d.icon}
           </div>
         </div>

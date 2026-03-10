@@ -16,27 +16,27 @@ export const WeatherWidget: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full text-white">
+    <div className="flex flex-col h-full text-black">
       <div className="flex justify-between items-start">
         <div className="flex flex-col">
           <div className="flex items-center gap-1">
             <span className="text-[13px] font-medium">萧县</span>
-            <Navigation size={10} className="fill-white" />
+            <Navigation size={10} className="fill-black" />
           </div>
           <span className="text-[48px] font-light leading-none mt-1">22°</span>
         </div>
         <div className="flex flex-col items-end text-right">
-          <Cloud size={20} className="text-white/80" />
+          <Cloud size={20} className="text-black/80" />
           <span className="text-[13px] font-medium mt-1">多云</span>
-          <span className="text-[11px] text-white/60">最高 23° 最低 17°</span>
+          <span className="text-[11px] text-black/60">最高 23° 最低 17°</span>
         </div>
       </div>
 
-      <div className="flex justify-between mt-auto pt-2 border-t border-white/10">
+      <div className="flex justify-between mt-auto pt-2 border-t border-black/10">
         {hours.map((h, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
-            <span className="text-[10px] text-white/60">{h.time}</span>
-            <Cloud size={14} className="text-white/80" />
+            <span className="text-[10px] text-black/60">{h.time}</span>
+            <Cloud size={14} className="text-black/80" />
             <span className="text-[11px] font-medium">{h.temp}</span>
           </div>
         ))}
